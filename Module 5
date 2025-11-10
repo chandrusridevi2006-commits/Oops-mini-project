@@ -1,0 +1,77 @@
+package housekeeping_project;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+
+public class module5 extends JFrame {
+
+    private JTextArea logArea;
+    private JButton refreshButton;
+
+    // Database connection details
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/housedb";
+    private static final String DB_USER = "root";
+    private static final String DB_PASS = "Quality@01";
+
+    public module5() {
+        setTitle("🏨 Hotel Housekeeping Logs Viewer");
+        setSize(600, 400);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout(10, 10));
+
+        // Title Label
+        JLabel header = new JLabel("📋 Housekeeping Log Records", JLabel.CENTER);
+        header.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        add(header, BorderLayout.NORTH);
+
+        // Text area for displaying data
+        logArea = new JTextArea();
+        logArea.setEditable(false);
+        logArea.setFont(new Font("Consolas", Font.PLAIN, 14));
+        add(new JScrollPane(logArea), BorderLayout.CENTER);
+
+        // Refresh button
+        refreshButton = new JButton("🔄 Refresh Logs");
+        refreshButton.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        add(refreshButton, BorderLayout.SOUTH);
+
+        // Load data when button clicked
+        refreshButton.addActionListener(e -> displayLogsFromDB());
+
+        // Load logs when app starts
+        displayLogsFromDB();
+    }
+
+    /**
+     * Fetch and display all housekeeping logs from MySQL database
+     */
+    private void displayLogsFromDB() {
+        String query = "SELECT * FROM housekeeping ORDER BY created_at DESC";
+
+        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+
+            logArea.setText(""); // clear old data
+            logArea.append(String.format("%-5s %-10s %-50s %-25s%n", "ID", "Room", "Message", "Created At"));
+            logArea.append("---------------------------------------------------------------------------------------------\n");
+
+            while (rs.next()) {
+                logArea.append(String.format("%-5d %-10d %-50s %-25s%n",
+                        rs.getInt("id"),
+                        rs.getInt("room_number"),
+                        rs.getString("message"),
+                        rs.getTimestamp("created_at")));
+            }
+
+        } catch (SQLException e) {
+            logArea.setText("❌ Database Error: " + e.getMessage());
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new module5().setVisible(true));
+    }
+}
