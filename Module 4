@@ -1,0 +1,149 @@
+package housekeeping_project;
+
+import java.io.*;
+import java.net.*;
+import java.sql.*;
+
+public class module4 {
+    // Networking port for communication
+    private static final int PORT = 5050;
+
+    // Database connection details
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/housedb";
+    private static final String DB_USER = "root";
+    private static final String DB_PASS = "Quality@01";  // replace with your MySQL password
+
+    public static void main(String[] args) {
+        System.out.println("🏨 Starting Hotel Housekeeping Tracker (Networking + JDBC) Module...\n");
+
+        // Start server and client in parallel threads
+        new Thread(module4::startServer, "Server-Thread").start();
+        new Thread(module4::startClient, "Client-Thread").start();
+
+        // Wait for networking to complete before displaying DB data
+        try {
+            Thread.sleep(4000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        // Display database records
+        displayHousekeepingLogs();
+
+        System.out.println("\n✅ Module 4 execution completed successfully!");
+    }
+
+    // 1️⃣ Server: Listens for housekeeping updates from the client and saves to DB
+    public static void startServer() {
+        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+            System.out.println("[SERVER] Listening on port " + PORT + " for housekeeping updates...");
+
+            Socket socket = serverSocket.accept();
+            System.out.println("[SERVER] Client connected: " + socket.getInetAddress());
+
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+                String message = in.readLine();
+                if (message != null && !message.isEmpty()) {
+                    System.out.println("[SERVER] Received update: " + message);
+                    insertHousekeepingLogToDB(message);
+                } else {
+                    System.out.println("[SERVER] ⚠️ Received empty message.");
+                }
+            }
+
+        } catch (IOException e) {
+            System.err.println("[SERVER] ❌ Error: " + e.getMessage());
+        }
+    }
+
+    // 2️⃣ Client: Sends housekeeping task update to the server
+    public static void startClient() {
+        try {
+            Thread.sleep(1000); // Wait for server to start
+
+            System.out.println("[CLIENT] Connecting to server on localhost:" + PORT + "...");
+
+            try (Socket socket = new Socket("localhost", PORT);
+                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
+
+                String message = "Housekeeper Priya cleaned Room 204.";
+                out.println(message);
+                System.out.println("[CLIENT] Sent message: " + message);
+            }
+
+        } catch (IOException | InterruptedException e) {
+            System.err.println("[CLIENT] ❌ Error: " + e.getMessage());
+        }
+    }
+
+    // 3️⃣ Insert received housekeeping update into MySQL database
+    private static void insertHousekeepingLogToDB(String message) {
+        String query = "INSERT INTO housekeeping (room_number, message) VALUES (?, ?)";
+        int roomNumber = extractRoomNumber(message);
+
+        try {
+            // Load JDBC Driver
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
+                 PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+                pstmt.setInt(1, roomNumber);
+                pstmt.setString(2, message);
+                pstmt.executeUpdate();
+
+                System.out.println("[DB] ✅ Log saved to database for Room " + roomNumber);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("[DB] ❌ Failed to insert data: " + e.getMessage());
+        } catch (ClassNotFoundException e) {
+            System.err.println("[DB] ❌ JDBC Driver not found: " + e.getMessage());
+        }
+    }
+
+    // Utility: Extract room number (simple regex from message text)
+    private static int extractRoomNumber(String message) {
+        String[] words = message.split(" ");
+        for (String w : words) {
+            if (w.matches("\\d+")) {
+                return Integer.parseInt(w);
+            }
+        }
+        return 0; // default if no number found
+    }
+
+    // 4️⃣ Display all housekeeping logs from the database
+    private static void displayHousekeepingLogs() {
+        String query = "SELECT * FROM housekeeping ORDER BY created_at DESC";
+
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
+                 Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(query)) {
+
+                System.out.println("\n📋 Housekeeping Log (from MySQL Database):");
+                System.out.println("-------------------------------------------------------------");
+                System.out.printf("%-5s %-10s %-50s %-20s\n", "ID", "Room", "Message", "Created At");
+                System.out.println("-------------------------------------------------------------");
+
+                while (rs.next()) {
+                    System.out.printf("%-5d %-10d %-50s %-20s\n",
+                            rs.getInt("id"),
+                            rs.getInt("room_number"),
+                            rs.getString("message"),
+                            rs.getTimestamp("created_at"));
+                }
+
+                System.out.println("-------------------------------------------------------------");
+            }
+
+        } catch (SQLException e) {
+            System.err.println("[DB] ❌ Error fetching data: " + e.getMessage());
+        } catch (ClassNotFoundException e) {
+            System.err.println("[DB] ❌ JDBC Driver not found: " + e.getMessage());
+        }
+    }
+}
