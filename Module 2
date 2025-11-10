@@ -1,0 +1,35 @@
+package housekeeping_project;
+import java.io.*;
+
+class TaskNotFoundException extends Exception {
+    public TaskNotFoundException(String message) {
+        super(message);
+    }
+}
+
+public class module2 {
+    public static void logTask(String task) throws IOException {
+        try (FileWriter writer = new FileWriter("C:\\Users\\Canara\\OneDrive\\Desktop\\tasks.txt", true)) {
+            writer.write(task + "\n");
+            System.out.println("Task logged: " + task);
+        }
+    }
+
+    public static void findTask(String task) throws TaskNotFoundException {
+        // Dummy logic for demonstration
+        if (!task.equalsIgnoreCase("clean room")) {
+            throw new TaskNotFoundException("Task not found: " + task);
+        } else {
+            System.out.println("Task found: " + task);
+        }
+    }
+
+    public static void main(String[] args) {
+        try {
+            logTask("Clean Room 101");
+            findTask("wash dishes");
+        } catch (IOException | TaskNotFoundException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+}
