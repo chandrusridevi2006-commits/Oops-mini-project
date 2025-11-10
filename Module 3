@@ -1,0 +1,43 @@
+package housekeeping_project;
+
+class Task<T> {
+    private T taskName;
+
+    public Task(T taskName) {
+        this.taskName = taskName;
+    }
+
+    public void performTask() {
+        System.out.println("Performing: " + taskName);
+    }
+}
+
+class HousekeeperThread extends Thread {
+    private String name;
+
+    public HousekeeperThread(String name) {
+        this.name = name;
+    }
+
+    public void run() {
+        System.out.println(name + " started cleaning...");
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            System.out.println(name + " interrupted!");
+        }
+        System.out.println(name + " finished cleaning.");
+    }
+}
+
+public class module3 {
+    public static void main(String[] args) {
+        Task<String> t1 = new Task<>("Clean Room 102");
+        t1.performTask();
+
+        HousekeeperThread h1 = new HousekeeperThread("Ravi");
+        HousekeeperThread h2 = new HousekeeperThread("Priya");
+        h1.start();
+        h2.start();
+    }
+}
