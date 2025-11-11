@@ -1,0 +1,9 @@
+CREATE DATABASE IF NOT EXISTS housedb;
+USE housedb;
+
+CREATE TABLE housekeeping (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    room_number INT NOT NULL,
+    message VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
